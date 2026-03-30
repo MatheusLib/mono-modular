@@ -8,6 +8,7 @@ import (
 
 type PolicyService interface {
 	ListPolicies(ctx context.Context, limit int) ([]repository.Policy, error)
+	CreatePolicy(ctx context.Context, p repository.Policy) (*repository.Policy, error)
 }
 
 type policyService struct {
@@ -20,4 +21,8 @@ func NewPolicyService(repo repository.PolicyRepository) PolicyService {
 
 func (s *policyService) ListPolicies(ctx context.Context, limit int) ([]repository.Policy, error) {
 	return s.repo.List(ctx, limit)
+}
+
+func (s *policyService) CreatePolicy(ctx context.Context, p repository.Policy) (*repository.Policy, error) {
+	return s.repo.Create(ctx, p)
 }

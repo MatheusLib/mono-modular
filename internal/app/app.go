@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"mono-modular/internal/consent/handler"
 	"mono-modular/internal/consent/repository"
 	"mono-modular/internal/consent/service"
@@ -17,6 +18,9 @@ import (
 	reporthandler "mono-modular/internal/report/handler"
 	reportrepo "mono-modular/internal/report/repository"
 	reportservice "mono-modular/internal/report/service"
+	lineagehandler "mono-modular/internal/lineage/handler"
+	lineagerepo "mono-modular/internal/lineage/repository"
+	lineageservice "mono-modular/internal/lineage/service"
 )
 
 func NewRouter(db *sql.DB) http.Handler {
@@ -36,13 +40,27 @@ func NewRouter(db *sql.DB) http.Handler {
 	reportSvc := reportservice.NewReportService(reportRepo)
 	reportHandler := reporthandler.NewReportHandler(reportSvc)
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/health", Health)
-	mux.HandleFunc("/consents", h.List)
-	mux.HandleFunc("/policies", policyHandler.List)
-	mux.HandleFunc("/audit/events", auditHandler.List)
-	mux.HandleFunc("/reports/consents", reportHandler.ListConsents)
+	lineageRepo := lineagerepo.NewLineageRepository(db)
+	lineageSvc := lineageservice.NewLineageService(lineageRepo)
+	lineageH := lineagehandler.NewLineageHandler(lineageSvc)
+
+	r := chi.NewRouter()
 
 	logger := middleware.NewLogger()
-	return middleware.RequestID(middleware.Logging(logger)(middleware.Tracing(mux)))
+	r.Use(middleware.RequestID)
+	r.Use(middleware.Tracing)
+	r.Use(middleware.Logging(logger))
+
+	r.Get("/health", Health)
+	r.Get("/consents", h.List)
+	r.Post("/consents", h.Create)
+	r.Patch("/consents/{document_id}/revoke", h.Revoke)
+	r.Get("/policies", policyHandler.List)
+	r.Post("/policies", policyHandler.Create)
+	r.Get("/audit/events", auditHandler.List)
+	r.Get("/reports/consents", reportHandler.ListConsents)
+	r.Post("/lineage", lineageH.Record)
+	r.Get("/lineage/export/{subject_id}", lineageH.Export)
+
+	return r
 }

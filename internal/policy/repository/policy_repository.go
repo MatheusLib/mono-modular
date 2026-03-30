@@ -13,6 +13,7 @@ type Policy struct {
 
 type PolicyRepository interface {
 	List(ctx context.Context, limit int) ([]Policy, error)
+	Create(ctx context.Context, p Policy) (*Policy, error)
 }
 
 type mysqlPolicyRepository struct {
@@ -21,6 +22,22 @@ type mysqlPolicyRepository struct {
 
 func NewPolicyRepository(db *sql.DB) PolicyRepository {
 	return &mysqlPolicyRepository{db: db}
+}
+
+func (r *mysqlPolicyRepository) Create(ctx context.Context, p Policy) (*Policy, error) {
+	res, err := r.db.ExecContext(ctx,
+		`INSERT INTO policies (version, content_hash) VALUES (?, ?)`,
+		p.Version, p.ContentHash,
+	)
+	if err != nil {
+		return nil, err
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+	p.ID = uint64(id)
+	return &p, nil
 }
 
 func (r *mysqlPolicyRepository) List(ctx context.Context, limit int) ([]Policy, error) {
