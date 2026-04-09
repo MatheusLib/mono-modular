@@ -31,6 +31,7 @@ jobs:
             OTEL_EXPORTER_OTLP_ENDPOINT=${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
             OTEL_EXPORTER_OTLP_INSECURE=${{ secrets.OTEL_EXPORTER_OTLP_INSECURE }}
             EOF
+            go build -o api ./cmd/api
             sudo cp "$HOME/mono-modular/deploy/systemd/mono-modular.service" /etc/systemd/system/mono-modular.service
             sudo systemctl daemon-reload
             sudo systemctl enable mono-modular
